@@ -3,8 +3,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>MTAIIRUS App Store — Fixed</title>
+    <title>MTAIIRUS App Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
         :root{
             --primary:#6366f1; --primary-dark:#4f46e5; --primary-light:#818cf8;
@@ -19,7 +24,7 @@
         body{
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: linear-gradient(135deg,var(--darker),var(--dark));
-            color:var(--light); min-height:100vh; line-height:1.6; overflow-x:hidden;
+            color:var(--light); min-height:100vh; line-height:1.6;
         }
         .glass{ background:var(--glass-bg); backdrop-filter:blur(16px); border:1px solid var(--glass-border); border-radius:var(--radius-lg); box-shadow:var(--shadow);}
         .gradient-text{ background:linear-gradient(90deg,var(--primary),var(--primary-light)); -webkit-background-clip:text; background-clip:text; color:transparent; }
@@ -75,34 +80,86 @@
         .form-input,.form-select,.form-textarea{width:100%;padding:0.65rem;border-radius:0.6rem;background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--light)}
         .form-textarea{min-height:6rem;resize:vertical}
 
-        .upload-area{border:2px dashed var(--glass-border);border-radius:0.75rem;padding:1.25rem;text-align:center;background:var(--glass-bg);cursor:pointer}
-        .upload-area.dragover{border-color:var(--primary);background:rgba(99,102,241,0.06)}
-        .upload-icon{font-size:2.25rem;color:var(--primary);margin-bottom:0.5rem}
-
-        .apps-list{max-height:20rem;overflow:auto;margin-top:0.75rem}
-        .app-item{display:flex;align-items:center;justify-content:space-between;padding:0.6rem;background:var(--glass-bg);border-radius:0.5rem;margin-bottom:0.5rem}
-        .app-item-icon{width:2.5rem;height:2.5rem;border-radius:0.5rem;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center}
-
         .toast{position:fixed;top:1rem;right:1rem;padding:0.6rem 1rem;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:0.6rem;display:flex;align-items:center;gap:0.6rem;z-index:1002;transform:translateX(120%);transition:transform 0.25s}
         .toast.show{transform:translateX(0)}
         .toast-success{border-left:4px solid var(--secondary)}
         .toast-error{border-left:4px solid var(--danger)}
 
         .empty-state{padding:1.5rem;text-align:center;color:var(--gray)}
-        @media(max-width:768px){ .app-grid{grid-template-columns:1fr} .header-content{flex-direction:column;gap:0.6rem} .admin-controls{bottom:1rem;right:1rem} }
-        @keyframes shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-5px)}20%,40%,60%,80%{transform:translateX(5px)}}
+        
+        /* Lock Screen */
+        .lock-screen-container {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            z-index: 1000;
+        }
+        
+        .lock-screen {
+            width: 100%;
+            max-width: 28rem;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .lock-icon {
+            width: 5rem;
+            height: 5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+        
+        .lock-input {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background: rgba(255,255,255,0.08);
+            border: 2px solid var(--glass-border);
+            color: var(--light);
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        @media(max-width:768px){ 
+            .app-grid{grid-template-columns:1fr} 
+            .header-content{flex-direction:column;gap:0.6rem} 
+            .admin-controls{bottom:1rem;right:1rem} 
+        }
+        
+        @keyframes shake{
+            0%,100%{transform:translateX(0)}
+            10%,30%,50%,70%,90%{transform:translateX(-5px)}
+            20%,40%,60%,80%{transform:translateX(5px)}
+        }
     </style>
 </head>
 <body>
     <!-- Lock Screen -->
-    <div id="lockScreen" class="lock-screen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;">
-        <div class="glass" style="width:100%;max-width:28rem;padding:1.5rem;text-align:center;">
-            <h1 class="gradient-text" style="font-size:1.75rem;margin-bottom:0.5rem">MTAIIRUS</h1>
-            <p style="color:var(--gray);margin-bottom:1rem">Enter your password to access the application store</p>
-            <div class="lock-form" style="display:flex;flex-direction:column;gap:0.75rem">
-                <input id="lockPassword" type="password" placeholder="Enter password" maxlength="40" style="padding:0.85rem;border-radius:0.6rem;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);color:var(--light);text-align:center;font-weight:700" autofocus>
-                <button class="btn btn-primary" id="unlockBtn"><i class="fas fa-unlock"></i><span>Unlock</span></button>
-                <div id="lockError" style="color:var(--danger);display:none;font-size:0.9rem"><i class="fas fa-exclamation-circle"></i> Incorrect password</div>
+    <div id="lockScreen" class="lock-screen-container">
+        <div class="glass lock-screen">
+            <div class="lock-icon">
+                <i class="fas fa-lock" style="color:white;font-size:2rem"></i>
+            </div>
+            <h1 class="gradient-text" style="font-size:2.5rem;margin-bottom:0.5rem">MTAIIRUS</h1>
+            <p style="color:var(--gray);margin-bottom:1.5rem">Enter password to access the application store</p>
+            <div style="display:flex;flex-direction:column;gap:0.75rem">
+                <input id="lockPassword" type="password" class="lock-input" placeholder="Enter password" maxlength="40" autofocus>
+                <button class="btn btn-primary" onclick="unlockAppStore()" style="padding:1rem;font-size:1.1rem">
+                    <i class="fas fa-unlock"></i><span>Unlock App Store</span>
+                </button>
+                <div id="lockError" style="color:var(--danger);display:none;margin-top:0.5rem">
+                    <i class="fas fa-exclamation-circle"></i> Incorrect password. Try: <strong>mtaiirus</strong>
+                </div>
             </div>
         </div>
     </div>
@@ -111,13 +168,17 @@
     <div id="mainApp" style="display:none;">
         <header class="header">
             <div class="container header-content">
-                <a class="logo" href="#">
+                <div class="logo">
                     <div class="logo-icon"><i class="fas fa-store" style="color:white"></i></div>
                     <span class="logo-text gradient-text">MTAIIRUS</span>
-                </a>
+                </div>
                 <div style="display:flex;align-items:center;gap:0.75rem;">
-                    <div id="statusBadge" class="badge badge-locked"><i class="fas fa-shield-alt"></i><span>Locked</span></div>
-                    <button id="lockBtn" class="btn btn-sm" title="Lock/Unlock"><i class="fas fa-lock"></i><span> Lock</span></button>
+                    <div class="badge badge-unlocked">
+                        <i class="fas fa-shield-alt"></i><span>Unlocked</span>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="lockApp()">
+                        <i class="fas fa-lock"></i><span> Lock</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -141,31 +202,38 @@
                         <div class="logo-icon"><i class="fas fa-th-large" style="color:white"></i></div>
                         <h2 style="font-size:1.1rem">All Applications</h2>
                     </div>
+                    <button class="btn btn-primary btn-sm" onclick="openAdminPanel()">
+                        <i class="fas fa-plus"></i><span> Add App</span>
+                    </button>
                 </div>
 
                 <div id="appGrid" class="app-grid">
-                    <!-- apps -->
+                    <!-- Apps will be loaded here -->
                 </div>
             </section>
         </main>
 
+        <!-- Add App Button -->
         <div class="admin-controls">
-            <button id="adminBtn" class="btn btn-primary admin-btn" title="Admin"><i class="fas fa-cog"></i></button>
+            <button class="btn btn-primary admin-btn" onclick="openAdminPanel()" title="Add Application">
+                <i class="fas fa-plus"></i>
+            </button>
         </div>
     </div>
 
-    <!-- Modal overlay -->
-    <div id="modalOverlay" class="modal-overlay" onclick=""></div>
-
     <!-- Admin Modal -->
-    <div id="adminModal" class="modal glass" role="dialog" aria-modal="true" aria-labelledby="adminTitle" style="display:none;">
+    <div id="adminModal" class="modal glass" style="display:none;">
         <div class="modal-header">
-            <h3 id="adminTitle" style="display:flex;align-items:center;gap:0.5rem"><i class="fas fa-cog"></i> Admin Panel</h3>
-            <button class="modal-close" id="modalCloseBtn" aria-label="Close"><i class="fas fa-times"></i></button>
+            <h3 style="display:flex;align-items:center;gap:0.5rem">
+                <i class="fas fa-plus-circle"></i> <span id="modalTitle">Add New Application</span>
+            </h3>
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="modal-body">
-            <form id="appForm" onsubmit="return false;">
+            <form id="appForm">
+                <input type="hidden" id="appId" value="">
+                
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Application Name *</label>
@@ -182,6 +250,9 @@
                             <option value="fas fa-video">Video</option>
                             <option value="fas fa-code">Code</option>
                             <option value="fas fa-chart-bar">Analytics</option>
+                            <option value="fas fa-calculator">Calculator</option>
+                            <option value="fas fa-calendar">Calendar</option>
+                            <option value="fas fa-file-alt">Document</option>
                         </select>
                     </div>
                 </div>
@@ -189,46 +260,28 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Categories</label>
-                        <input id="appCategories" class="form-input" type="text" placeholder="Tools, Productivity">
+                        <input id="appCategories" class="form-input" type="text" placeholder="Tools, Productivity, Games">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Rating</label>
-                        <div id="ratingStars" class="rating" style="display:flex;gap:6px">
-                            <i class="fas fa-star star" data-value="1" style="cursor:pointer"></i>
-                            <i class="fas fa-star star" data-value="2" style="cursor:pointer"></i>
-                            <i class="fas fa-star star" data-value="3" style="cursor:pointer"></i>
-                            <i class="fas fa-star star" data-value="4" style="cursor:pointer"></i>
-                            <i class="fas fa-star star" data-value="5" style="cursor:pointer"></i>
-                        </div>
-                        <input id="appRating" type="hidden" value="3">
+                        <label class="form-label">Rating (1-5)</label>
+                        <select id="appRating" class="form-select">
+                            <option value="1">⭐ (1)</option>
+                            <option value="2">⭐⭐ (2)</option>
+                            <option value="3" selected>⭐⭐⭐ (3)</option>
+                            <option value="4">⭐⭐⭐⭐ (4)</option>
+                            <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Description</label>
-                    <textarea id="appDescription" class="form-textarea" placeholder="Enter app description"></textarea>
+                    <textarea id="appDescription" class="form-textarea" placeholder="Enter app description..."></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Application Image (Optional)</label>
-                    <div id="imageUpload" class="upload-area">
-                        <div class="upload-icon"><i class="fas fa-image"></i></div>
-                        <p>Drag & drop image here</p>
-                        <p style="font-size:0.85rem;color:var(--gray)">or click to browse</p>
-                        <input id="imageInput" type="file" accept="image/*" hidden>
-                    </div>
-                    <div id="imagePreview"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">HTML File *</label>
-                    <div id="htmlUpload" class="upload-area">
-                        <div class="upload-icon"><i class="fas fa-file-code"></i></div>
-                        <p>Drag & drop HTML file here</p>
-                        <p style="font-size:0.85rem;color:var(--gray)">or click to browse</p>
-                        <input id="htmlInput" type="file" accept=".html" hidden>
-                    </div>
-                    <div id="htmlPreview"></div>
+                    <label class="form-label">HTML Content *</label>
+                    <textarea id="appHtmlContent" class="form-textarea" placeholder="Paste your HTML code here..." required style="min-height: 200px; font-family: monospace; font-size: 0.9rem;"></textarea>
                 </div>
 
                 <div class="form-grid" style="align-items:center">
@@ -243,604 +296,653 @@
                 </div>
             </form>
 
-            <div class="current-apps">
-                <h4 style="margin-top:0.5rem">Current Applications</h4>
-                <div id="currentAppsList" class="apps-list"></div>
+            <div style="margin-top:1.5rem">
+                <h4 style="margin-bottom:0.75rem">Quick HTML Templates:</h4>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    <button type="button" class="btn btn-sm" onclick="loadTemplate('calculator')">Calculator</button>
+                    <button type="button" class="btn btn-sm" onclick="loadTemplate('todo')">Todo List</button>
+                    <button type="button" class="btn btn-sm" onclick="loadTemplate('notes')">Notes App</button>
+                    <button type="button" class="btn btn-sm" onclick="loadTemplate('timer')">Timer</button>
+                </div>
             </div>
         </div>
 
         <div class="modal-footer" style="display:flex;gap:0.5rem;justify-content:flex-end;padding-top:0.6rem;border-top:1px solid var(--glass-border)">
-            <button id="modalCancel" class="btn">Cancel</button>
-            <button id="modalAdd" class="btn btn-primary"><i class="fas fa-plus"></i> Add Application</button>
+            <button class="btn" onclick="closeModal()">Cancel</button>
+            <button id="deleteBtn" class="btn btn-danger" onclick="deleteApplication()" style="display:none">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <button class="btn btn-primary" onclick="saveApplication()" id="saveBtn">
+                <i class="fas fa-plus"></i> Add Application
+            </button>
         </div>
     </div>
 
-    <div id="toast" class="toast" role="status" aria-live="polite"><i class="fas fa-check-circle"></i><span id="toastMessage">Operation completed</span></div>
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Operation completed</span>
+    </div>
 
     <script>
-        // Constants
-        const APP_PASSWORD = "mtaiirus2024";
-        const STORAGE_KEYS = { APPS: 'mtaiirus_apps', UNLOCKED: 'mtaiirus_unlocked', UNLOCK_TIME: 'mtaiirus_unlock_time' };
+        // Your Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8Ck4k7gMfn9oU1nq-JBijML1JE6yVx84",
+            authDomain: "project45-627cc.firebaseapp.com",
+            databaseURL: "https://project45-627cc-default-rtdb.firebaseio.com",
+            projectId: "project45-627cc",
+            storageBucket: "project45-627cc.firebasestorage.app",
+            messagingSenderId: "850515567224",
+            appId: "1:850515567224:web:bcbed252ee8596c08fc38d"
+        };
 
-        // State
-        let isLocked = true;
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.log("Firebase already initialized or error:", error);
+        }
+
+        // Get Firebase services
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const storage = firebase.storage();
+
+        // Simple Password Lock (for quick access)
+        const APP_PASSWORD = "mtaiirus";
+        let isUnlocked = false;
         let applications = [];
-        let selectedRating = 3;
-        let uploadedImage = null;
-        let uploadedHTML = null;
-        let editingId = null; // if editing existing app
-        let toastTimeout = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            bindDom();
-            loadApplications();
-            checkUnlockStatus();
-            setupFileUploads();
-            updateRatingStars();
-            renderApplications();
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('App initialized');
+            
+            // Setup Enter key for unlock
+            document.getElementById('lockPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    unlockAppStore();
+                }
+            });
+            
+            // Setup search
+            document.getElementById('searchBar').addEventListener('input', function() {
+                renderApplications();
+            });
+            
+            // Focus on password field
+            document.getElementById('lockPassword').focus();
+            
+            // Try to load from Firebase
+            loadAppsFromFirebase();
         });
 
-        // DOM caching & event wiring
-        function bindDom() {
-            document.getElementById('unlockBtn').addEventListener('click', unlockAppStore);
-            document.getElementById('lockBtn').addEventListener('click', toggleLock);
-            document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
-            document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
-            document.getElementById('modalCancel').addEventListener('click', closeModal);
-            document.getElementById('modalAdd').addEventListener('click', addOrUpdateApplication);
-            document.getElementById('lockPassword').addEventListener('keypress', e => { if (e.key === 'Enter') unlockAppStore(); });
-            document.getElementById('searchBar').addEventListener('input', handleSearch);
-            document.getElementById('modalOverlay').addEventListener('click', closeModal);
-
-            // keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === '/') { e.preventDefault(); document.getElementById('searchBar').focus(); }
-                if (e.key === 'Escape') { closeModal(); }
-                if (e.ctrlKey && e.key.toLowerCase() === 'k' && !isLocked) { e.preventDefault(); openAdminPanel(); }
-            });
-
-            // rating stars click
-            document.querySelectorAll('#ratingStars .star').forEach(star => {
-                star.addEventListener('click', () => {
-                    const v = parseInt(star.getAttribute('data-value'), 10);
-                    setRating(v);
-                });
-            });
-
-            // global prevent default for drag/drop outside upload areas
-            window.addEventListener('dragover', preventDefaults, false);
-            window.addEventListener('drop', preventDefaults, false);
-        }
-
-        // Unlock logic
-        function checkUnlockStatus() {
-            const unlocked = localStorage.getItem(STORAGE_KEYS.UNLOCKED) === 'true';
-            const unlockTime = parseInt(localStorage.getItem(STORAGE_KEYS.UNLOCK_TIME) || '0', 10);
-            const thirtyMinutes = 30 * 60 * 1000;
-            if (unlocked && (Date.now() - unlockTime < thirtyMinutes)) {
-                performUnlockUI();
-                saveUnlockStatus(); // refresh time
-                showToast('Unlocked (remembered)');
-            } else {
-                localStorage.removeItem(STORAGE_KEYS.UNLOCKED);
-                localStorage.removeItem(STORAGE_KEYS.UNLOCK_TIME);
-                // ensure lock screen visible
-                document.getElementById('lockScreen').style.display = 'flex';
-                document.getElementById('mainApp').style.display = 'none';
-                isLocked = true;
-            }
-        }
-
+        // Lock/Unlock Functions
         function unlockAppStore() {
-            const pass = document.getElementById('lockPassword').value || '';
-            const error = document.getElementById('lockError');
-            if (pass === APP_PASSWORD) {
-                performUnlockUI();
-                saveUnlockStatus();
-                error.style.display = 'none';
+            const password = document.getElementById('lockPassword').value;
+            const errorDiv = document.getElementById('lockError');
+            
+            console.log('Password entered:', password);
+            
+            if (password === APP_PASSWORD) {
+                // Correct password
+                document.getElementById('lockScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                errorDiv.style.display = 'none';
                 document.getElementById('lockPassword').value = '';
-                showToast('Application unlocked successfully');
+                isUnlocked = true;
+                showToast('Welcome to MTAIIRUS App Store!');
+                
+                // Load apps
+                loadAppsFromFirebase();
             } else {
-                error.style.display = 'block';
+                // Wrong password
+                errorDiv.style.display = 'block';
                 document.getElementById('lockPassword').value = '';
                 document.getElementById('lockPassword').focus();
-                // shake
-                const lockForm = document.querySelector('.lock-form');
-                lockForm.style.animation = 'none';
-                setTimeout(()=> lockForm.style.animation = 'shake 0.45s', 10);
-            }
-        }
-
-        function performUnlockUI() {
-            isLocked = false;
-            document.getElementById('lockScreen').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            const badge = document.getElementById('statusBadge');
-            badge.className = 'badge badge-unlocked';
-            badge.innerHTML = '<i class="fas fa-shield-alt"></i><span>Unlocked</span>';
-            const lockBtn = document.getElementById('lockBtn');
-            lockBtn.innerHTML = '<i class="fas fa-lock"></i><span> Lock</span>';
-        }
-
-        function toggleLock() {
-            if (isLocked) {
-                document.getElementById('lockScreen').style.display = 'flex';
-                document.getElementById('mainApp').style.display = 'none';
-                document.getElementById('lockPassword').focus();
-            } else {
-                lockApp();
+                
+                // Shake animation
+                const lockScreen = document.querySelector('.lock-screen');
+                lockScreen.style.animation = 'shake 0.5s';
+                setTimeout(function() {
+                    lockScreen.style.animation = '';
+                }, 500);
             }
         }
 
         function lockApp() {
-            isLocked = true;
-            localStorage.removeItem(STORAGE_KEYS.UNLOCKED);
-            localStorage.removeItem(STORAGE_KEYS.UNLOCK_TIME);
-            document.getElementById('lockScreen').style.display = 'flex';
-            document.getElementById('mainApp').style.display = 'none';
-            const badge = document.getElementById('statusBadge');
-            badge.className = 'badge badge-locked';
-            badge.innerHTML = '<i class="fas fa-shield-alt"></i><span>Locked</span>';
-            document.getElementById('lockBtn').innerHTML = '<i class="fas fa-unlock"></i><span> Unlock</span>';
-            showToast('Application locked successfully');
+            if (confirm('Lock the app store?')) {
+                document.getElementById('lockScreen').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('lockPassword').value = '';
+                document.getElementById('lockPassword').focus();
+                document.getElementById('lockError').style.display = 'none';
+                isUnlocked = false;
+                showToast('App Store locked');
+            }
         }
 
-        function saveUnlockStatus() {
-            localStorage.setItem(STORAGE_KEYS.UNLOCKED, 'true');
-            localStorage.setItem(STORAGE_KEYS.UNLOCK_TIME, Date.now().toString());
-        }
-
-        // Applications persistence & samples
-        function loadApplications() {
-            const raw = localStorage.getItem(STORAGE_KEYS.APPS);
-            if (raw) {
-                try {
-                    applications = JSON.parse(raw) || [];
-                } catch (e) {
-                    applications = [];
+        // Firebase Functions
+        function loadAppsFromFirebase() {
+            if (!isUnlocked) return;
+            
+            database.ref('apps').once('value').then(function(snapshot) {
+                applications = [];
+                snapshot.forEach(function(childSnapshot) {
+                    const app = childSnapshot.val();
+                    app.id = childSnapshot.key;
+                    applications.push(app);
+                });
+                
+                // If no apps in Firebase, load sample apps
+                if (applications.length === 0) {
+                    loadSampleApps();
+                } else {
+                    renderApplications();
+                    updateStats();
                 }
+            }).catch(function(error) {
+                console.log('Error loading from Firebase:', error);
+                // Fallback to local storage
+                loadAppsFromLocalStorage();
+            });
+        }
+
+        function saveAppToFirebase(appData, isEditing = false) {
+            if (!isUnlocked) return;
+            
+            try {
+                if (isEditing && appData.id) {
+                    // Update existing app
+                    database.ref('apps/' + appData.id).update(appData)
+                        .then(function() {
+                            showToast('App updated in Firebase!');
+                            loadAppsFromFirebase();
+                        })
+                        .catch(function(error) {
+                            console.error('Error updating app:', error);
+                            saveAppToLocalStorage(appData, isEditing);
+                        });
+                } else {
+                    // Create new app
+                    const newAppRef = database.ref('apps').push();
+                    appData.id = newAppRef.key;
+                    newAppRef.set(appData)
+                        .then(function() {
+                            showToast('App saved to Firebase!');
+                            loadAppsFromFirebase();
+                        })
+                        .catch(function(error) {
+                            console.error('Error saving app:', error);
+                            saveAppToLocalStorage(appData, isEditing);
+                        });
+                }
+            } catch (error) {
+                console.log('Firebase error, saving locally:', error);
+                saveAppToLocalStorage(appData, isEditing);
             }
-            if (!applications || applications.length === 0) {
-                loadSampleApplications();
+        }
+
+        function deleteAppFromFirebase(appId) {
+            if (!isUnlocked) return;
+            
+            database.ref('apps/' + appId).remove()
+                .then(function() {
+                    showToast('App deleted from Firebase!');
+                    loadAppsFromFirebase();
+                })
+                .catch(function(error) {
+                    console.error('Error deleting app:', error);
+                    deleteAppFromLocalStorage(appId);
+                });
+        }
+
+        // Local Storage Fallback
+        function loadAppsFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('mtaiirus_apps');
+                if (saved) {
+                    applications = JSON.parse(saved) || [];
+                }
+                
+                if (applications.length === 0) {
+                    loadSampleApps();
+                } else {
+                    renderApplications();
+                    updateStats();
+                }
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+                loadSampleApps();
             }
+        }
+
+        function saveAppToLocalStorage(appData, isEditing = false) {
+            try {
+                if (isEditing && appData.id) {
+                    const index = applications.findIndex(function(a) {
+                        return a.id === appData.id;
+                    });
+                    if (index !== -1) {
+                        applications[index] = appData;
+                    }
+                } else {
+                    appData.id = 'local_' + Date.now();
+                    applications.push(appData);
+                }
+                
+                localStorage.setItem('mtaiirus_apps', JSON.stringify(applications));
+                renderApplications();
+                updateStats();
+                showToast('App saved locally!');
+            } catch (e) {
+                console.error('Error saving to localStorage:', e);
+                showToast('Error saving app!', true);
+            }
+        }
+
+        function deleteAppFromLocalStorage(appId) {
+            applications = applications.filter(function(a) {
+                return a.id !== appId;
+            });
+            localStorage.setItem('mtaiirus_apps', JSON.stringify(applications));
             renderApplications();
             updateStats();
+            showToast('App deleted locally!');
         }
 
-        function saveApplications() {
-            localStorage.setItem(STORAGE_KEYS.APPS, JSON.stringify(applications));
-        }
-
-        function loadSampleApplications() {
+        // Sample Apps
+        function loadSampleApps() {
             applications = [
                 {
-                    id:1, name:"Calculator Pro", icon:"fas fa-calculator", categories:["Tools","Productivity"],
-                    description:"Advanced calculator with scientific functions and history",
-                    image:"https://images.unsplash.com/photo-1587145820266-a5951ee6f620?auto=format&fit=crop&w=800&q=80",
-                    rating:4, isLocked:false, isFeatured:true,
-                    htmlContent:`<!doctype html><html><head><meta charset="utf-8"><title>Calculator Pro</title><style>body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:40px;text-align:center} .card{background:rgba(255,255,255,0.08);padding:24px;border-radius:14px;max-width:500px;margin:0 auto}</style></head><body><div class="card"><h1>Calculator Pro</h1><p>Scientific functions, history & themes.</p></div></body></html>`,
-                    createdAt:new Date().toISOString(), downloads:42
+                    id: 'sample_1',
+                    name: "Calculator Pro",
+                    icon: "fas fa-calculator",
+                    categories: ["Tools", "Productivity"],
+                    description: "Advanced calculator with scientific functions",
+                    rating: 4,
+                    isLocked: false,
+                    isFeatured: true,
+                    htmlContent: `<!DOCTYPE html><html><head><title>Calculator</title><style>body{font-family:Arial;margin:0;padding:20px;background:#f0f0f0;}.calculator{max-width:300px;margin:0 auto;background:white;padding:20px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}.display{padding:20px;font-size:24px;text-align:right;background:#333;color:white;border-radius:5px;margin-bottom:10px;}.buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}button{padding:20px;font-size:18px;border:none;border-radius:5px;cursor:pointer;background:#e0e0e0;}button:hover{background:#d0d0d0;}.equals{background:#4CAF50;color:white;}.clear{background:#f44336;color:white;}</style></head><body><div class="calculator"><div class="display" id="display">0</div><div class="buttons"><button class="clear" onclick="clearDisplay()">C</button><button onclick="append('/')">/</button><button onclick="append('*')">×</button><button onclick="append('-')">-</button><button onclick="append('7')">7</button><button onclick="append('8')">8</button><button onclick="append('9')">9</button><button onclick="append('+')">+</button><button onclick="append('4')">4</button><button onclick="append('5')">5</button><button onclick="append('6')">6</button><button onclick="append('1')">1</button><button onclick="append('2')">2</button><button onclick="append('3')">3</button><button class="equals" onclick="calculate()">=</button><button onclick="append('0')">0</button><button onclick="append('.')">.</button></div></div><script>let display=document.getElementById('display');let current='0';function append(value){if(current==='0'){current=value}else{current+=value}display.textContent=current}function clearDisplay(){current='0';display.textContent=current}function calculate(){try{current=eval(current).toString();display.textContent=current}catch(e){display.textContent='Error';current='0'}}<\/script></body></html>`,
+                    downloads: 0,
+                    createdAt: new Date().toISOString()
                 },
                 {
-                    id:2, name:"Weather Dashboard", icon:"fas fa-cloud-sun", categories:["Weather","Tools"],
-                    description:"Real-time weather forecasts with beautiful visuals",
-                    image:"https://images.unsplash.com/photo-1592210454359-9043f067919b?auto=format&fit=crop&w=800&q=80",
-                    rating:5, isLocked:false, isFeatured:true,
-                    htmlContent:`<!doctype html><html><head><meta charset="utf-8"><title>Weather Dashboard</title><style>body{font-family:Arial, Helvetica, sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:40px;text-align:center}.card{background:rgba(255,255,255,0.06);padding:24px;border-radius:14px;max-width:500px;margin:0 auto}</style></head><body><div class="card"><h1>Weather Dashboard</h1><p>7-day forecast, alerts & maps.</p></div></body></html>`,
-                    createdAt:new Date().toISOString(), downloads:28
+                    id: 'sample_2',
+                    name: "Todo List",
+                    icon: "fas fa-tasks",
+                    categories: ["Productivity", "Tools"],
+                    description: "Manage your daily tasks efficiently",
+                    rating: 5,
+                    isLocked: false,
+                    isFeatured: true,
+                    htmlContent: `<!DOCTYPE html><html><head><title>Todo List</title><style>body{font-family:Arial;margin:0;padding:20px;background:#f0f0f0;}.container{max-width:500px;margin:0 auto;background:white;padding:30px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}h1{text-align:center;color:#333;}.input-group{display:flex;gap:10px;margin-bottom:20px;}input{flex:1;padding:10px;border:1px solid #ddd;border-radius:5px;}button{padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;}.todo-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:#f9f9f9;margin-bottom:5px;border-radius:5px;}.delete{background:#f44336;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;}</style></head><body><div class="container"><h1>📝 Todo List</h1><div class="input-group"><input type="text" id="todoInput" placeholder="Add a new task..."><button onclick="addTodo()">Add</button></div><div id="todoList"></div></div><script>function loadTodos(){let todos=JSON.parse(localStorage.getItem('todos')||'[]');let list=document.getElementById('todoList');list.innerHTML='';todos.forEach((todo,index)=>{let item=document.createElement('div');item.className='todo-item';item.innerHTML='<span>'+todo+'</span><button class="delete" onclick="deleteTodo('+index+')">Delete</button>';list.appendChild(item);});}function addTodo(){let input=document.getElementById('todoInput');let todo=input.value.trim();if(todo){let todos=JSON.parse(localStorage.getItem('todos')||'[]');todos.push(todo);localStorage.setItem('todos',JSON.stringify(todos));input.value='';loadTodos();}}function deleteTodo(index){let todos=JSON.parse(localStorage.getItem('todos')||'[]');todos.splice(index,1);localStorage.setItem('todos',JSON.stringify(todos));loadTodos();}loadTodos();document.getElementById('todoInput').addEventListener('keypress',(e)=>{if(e.key==='Enter')addTodo();});<\/script></body></html>`,
+                    downloads: 0,
+                    createdAt: new Date().toISOString()
                 }
             ];
-            saveApplications();
-        }
-
-        // Rendering
-        function renderApplications() {
-            renderAllApplications();
-            renderCurrentApplications();
+            
+            // Save sample apps to Firebase first, then fallback to localStorage
+            applications.forEach(function(app) {
+                saveAppToFirebase(app);
+            });
+            
+            renderApplications();
             updateStats();
         }
 
-        function renderAllApplications() {
-            const container = document.getElementById('appGrid');
-            if (!applications || applications.length === 0) {
-                container.innerHTML = `<div class="empty-state glass"><div style="font-size:2rem;color:var(--glass-border)"><i class="fas fa-box-open"></i></div><p>No applications available</p><button class="btn btn-primary" onclick="openAdminPanel()"><i class="fas fa-plus"></i> Add First Application</button></div>`;
+        // Render Applications
+        function renderApplications() {
+            const appGrid = document.getElementById('appGrid');
+            const searchTerm = document.getElementById('searchBar').value.toLowerCase();
+            
+            let filteredApps = applications;
+            if (searchTerm) {
+                filteredApps = applications.filter(function(app) {
+                    return app.name.toLowerCase().includes(searchTerm) ||
+                           (app.description && app.description.toLowerCase().includes(searchTerm)) ||
+                           (app.categories && app.categories.some(function(cat) {
+                               return cat.toLowerCase().includes(searchTerm);
+                           }));
+                });
+            }
+            
+            if (filteredApps.length === 0) {
+                appGrid.innerHTML = '<div class="empty-state glass"><p>No applications found</p><button class="btn btn-primary" onclick="openAdminPanel()">Add Your First App</button></div>';
                 return;
             }
-            container.innerHTML = applications.map(app => {
-                const lockedBadge = app.isLocked ? `<div class="badge badge-locked" style="position:absolute;top:0.75rem;right:0.75rem;"><i class="fas fa-lock"></i> Locked</div>` : '';
-                const featuredBadge = app.isFeatured ? `<div class="badge" style="position:absolute;top:0.75rem;left:0.75rem;background:rgba(245,158,11,0.08);color:var(--warning)"><i class="fas fa-star"></i> Featured</div>` : '';
-                const categoriesHtml = (Array.isArray(app.categories) ? app.categories : []).map(c=> `<span class="tag">${escapeHtml(c)}</span>`).join(' ');
-                const starsHtml = Array.from({length:5}).map((_,i)=> i < (app.rating||0) ? `<i class="fas fa-star" style="color:var(--warning)"></i>` : `<i class="fas fa-star" style="opacity:0.25"></i>`).join('');
-                return `
-                    <div class="app-card glass">
-                        ${lockedBadge}${featuredBadge}
-                        <img class="app-image" src="${escapeHtml(app.image || defaultImage())}" alt="${escapeHtml(app.name)}" onerror="this.src='${defaultImage()}';">
-                        <div class="app-content">
-                            <div class="app-header">
-                                <div class="app-icon"><i class="${escapeHtml(app.icon)}" style="color:white"></i></div>
-                                <div style="flex:1">
-                                    <h3 style="margin:0;font-size:1rem">${escapeHtml(app.name)}</h3>
-                                </div>
-                            </div>
-                            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">${categoriesHtml}</div>
-                            <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem">${starsHtml}<small style="color:var(--gray)">${app.downloads||0} downloads</small></div>
-                            <p style="color:var(--gray);margin:0.6rem 0 0;">${escapeHtml(app.description || '')}</p>
-                            <div class="app-actions" style="margin-top:0.8rem">
-                                <button class="btn btn-primary" ${app.isLocked ? 'disabled style="opacity:0.5"' : ''} onclick="runApplication(${app.id})"><i class="fas fa-play"></i> ${app.isLocked ? 'Locked' : 'Run'}</button>
-                                <button class="btn btn-secondary" onclick="downloadApplication(${app.id})"><i class="fas fa-download"></i> Download</button>
-                            </div>
-                        </div>
+            
+            let html = '';
+            filteredApps.forEach(function(app) {
+                const categories = Array.isArray(app.categories) ? app.categories : [];
+                const rating = app.rating || 3;
+                
+                html += `
+                <div class="app-card glass">
+                    ${app.isFeatured ? '<div class="badge" style="position:absolute;top:0.75rem;left:0.75rem;background:rgba(245,158,11,0.08);color:var(--warning)"><i class="fas fa-star"></i> Featured</div>' : ''}
+                    ${app.isLocked ? '<div class="badge badge-locked" style="position:absolute;top:0.75rem;right:0.75rem;"><i class="fas fa-lock"></i> Locked</div>' : ''}
+                    
+                    <div class="app-image" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));display:flex;align-items:center;justify-content:center;color:white;font-size:3rem">
+                        <i class="${app.icon || 'fas fa-box'}"></i>
                     </div>
-                `;
-            }).join('');
-        }
-
-        function renderCurrentApplications() {
-            const list = document.getElementById('currentAppsList');
-            if (!applications || applications.length === 0) {
-                list.innerHTML = `<div class="empty-state" style="padding:0.75rem"><small style="color:var(--gray)">No applications to manage</small></div>`;
-                return;
-            }
-            list.innerHTML = applications.map(app => {
-                return `
-                    <div class="app-item">
-                        <div style="display:flex;align-items:center;gap:0.6rem;flex:1">
-                            <div class="app-item-icon"><i class="${escapeHtml(app.icon)}" style="color:white"></i></div>
-                            <div>
-                                <h4 style="margin:0;font-size:0.9rem">${escapeHtml(app.name)}</h4>
-                                <small style="color:var(--gray)">${(Array.isArray(app.categories)?app.categories.join(', '):'')}</small>
+                    
+                    <div class="app-content">
+                        <div class="app-header">
+                            <div class="app-icon">
+                                <i class="${app.icon || 'fas fa-box'}" style="color:white"></i>
                             </div>
-                        </div>
-                        <div style="display:flex;gap:0.4rem">
-                            <button class="btn btn-sm" onclick="startEditApplication(${app.id})"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteApplication(${app.id})"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateStats(){
-            const total = applications.length;
-            const featured = applications.filter(a=>a.isFeatured).length;
-            const locked = applications.filter(a=>a.isLocked).length;
-            const cats = new Set();
-            applications.forEach(app=> (Array.isArray(app.categories)?app.categories:[]).forEach(c=>cats.add(c)));
-            document.getElementById('totalApps').textContent = total;
-            document.getElementById('featuredApps').textContent = featured;
-            document.getElementById('lockedApps').textContent = locked;
-            document.getElementById('categories').textContent = cats.size;
-        }
-
-        // Actions
-        function runApplication(id) {
-            const app = applications.find(a=>a.id===id);
-            if (!app) return;
-            if (app.isLocked) { showToast('This application is locked', true); return; }
-            const w = window.open('', '_blank');
-            w.document.write(app.htmlContent || '<!doctype html><html><body><p>Empty app</p></body></html>');
-            w.document.close();
-            showToast(`Running ${app.name}`);
-        }
-
-        function downloadApplication(id) {
-            const app = applications.find(a=>a.id===id);
-            if (!app) return;
-            const blob = new Blob([app.htmlContent || ''], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${(app.name||'app').replace(/\s+/g,'_').toLowerCase()}.html`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-            app.downloads = (app.downloads||0) + 1;
-            saveApplications();
-            renderApplications();
-            showToast(`${app.name} downloaded`);
-        }
-
-        function deleteApplication(id) {
-            if (!confirm('Delete this application?')) return;
-            applications = applications.filter(a=>a.id!==id);
-            saveApplications();
-            renderApplications();
-            showToast('Application deleted');
-        }
-
-        function startEditApplication(id) {
-            const app = applications.find(a=>a.id===id);
-            if (!app) return;
-            // prefill form
-            editingId = id;
-            document.getElementById('appName').value = app.name || '';
-            document.getElementById('appIcon').value = app.icon || 'fas fa-box';
-            document.getElementById('appCategories').value = Array.isArray(app.categories) ? app.categories.join(', ') : app.categories || '';
-            document.getElementById('appDescription').value = app.description || '';
-            document.getElementById('appRating').value = app.rating || 3;
-            selectedRating = app.rating || 3;
-            document.getElementById('isLocked').checked = !!app.isLocked;
-            document.getElementById('isFeatured').checked = !!app.isFeatured;
-
-            // set previews for image (if available)
-            if (app.image) {
-                uploadedImage = null; // do not force a new file; keep using the URL as fallback
-                document.getElementById('imagePreview').innerHTML = `
-                    <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
-                        <img src="${escapeHtml(app.image)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
-                        <div style="font-size:0.9rem;font-weight:700">${escapeHtml(app.name)}</div>
-                    </div>
-                `;
-            } else {
-                document.getElementById('imagePreview').innerHTML = '';
-            }
-
-            // we can't populate the actual html file object; show the filename placeholder
-            uploadedHTML = null;
-            document.getElementById('htmlPreview').innerHTML = `<div style="margin-top:0.5rem;color:var(--gray);font-size:0.9rem">Existing HTML will remain unless you upload a new file</div>`;
-
-            updateRatingStars();
-
-            openAdminPanel();
-            // remove the original app from list temporarily so "Add" will replace on submit
-            applications = applications.filter(a=>a.id!==id);
-            renderCurrentApplications();
-            showToast('Editing application');
-        }
-
-        // Add or Update app (if editingId set update, else add)
-        function addOrUpdateApplication(){
-            const name = (document.getElementById('appName').value || '').trim();
-            if (!name) { showToast('Please enter a name', true); return; }
-
-            // If we're editing and no new HTML uploaded, use previous htmlContent stored in memory? We removed the original app on edit start, so store a placeholder:
-            // For simplicity, if user didn't upload a new HTML file during edit, we keep an empty HTML (safer to require upload during new addition).
-            if (!uploadedHTML && editingId === null) { showToast('Please upload an HTML file', true); return; }
-
-            // If uploadedHTML exists, read it; otherwise, if editingId set, try to reuse a previous htmlContent if any (not available) — so we require upload only for new apps.
-            if (uploadedHTML) {
-                const reader = new FileReader();
-                reader.onload = function(e){
-                    const htmlText = e.target.result;
-                    commitAppCreationOrUpdate(htmlText);
-                };
-                reader.readAsText(uploadedHTML);
-            } else {
-                // no uploaded file (editing case): try to reuse the original app's htmlContent if available in the temp variable
-                // For robustness, require HTML when adding new; for editing, if no new file uploaded, we'll attempt to set a simple placeholder
-                commitAppCreationOrUpdate('<!doctype html><html><body><p>App content not provided.</p></body></html>');
-            }
-        }
-
-        function commitAppCreationOrUpdate(htmlText) {
-            const name = (document.getElementById('appName').value || '').trim();
-            const icon = document.getElementById('appIcon').value || 'fas fa-box';
-            const categories = (document.getElementById('appCategories').value || '').split(',').map(s => s.trim()).filter(Boolean);
-            const desc = document.getElementById('appDescription').value || '';
-            const rating = selectedRating || 3;
-            const locked = !!document.getElementById('isLocked').checked;
-            const featured = !!document.getElementById('isFeatured').checked;
-            let imageUrl = defaultImage();
-
-            if (uploadedImage) {
-                imageUrl = URL.createObjectURL(uploadedImage);
-            } else {
-                // if editing and imagePreview shows a URL, leave it as-is by checking preview's <img>
-                const imgPreview = document.querySelector('#imagePreview img');
-                if (imgPreview && imgPreview.src) imageUrl = imgPreview.src;
-            }
-
-            const newApp = {
-                id: editingId ? editingId : (applications.length>0 ? Math.max(...applications.map(a=>a.id))+1 : 1),
-                name, icon, categories, description: desc,
-                image: imageUrl, rating, isLocked: locked, isFeatured: featured,
-                htmlContent: htmlText, createdAt: new Date().toISOString(), downloads: 0
-            };
-
-            // if editingId existed, ensure no duplication
-            applications.push(newApp);
-            // cleanup
-            editingId = null;
-            saveApplications();
-            renderApplications();
-            clearForm();
-            closeModal();
-            showToast('Application saved');
-        }
-
-        function clearForm(){
-            document.getElementById('appForm').reset();
-            document.getElementById('imagePreview').innerHTML = '';
-            document.getElementById('htmlPreview').innerHTML = '';
-            uploadedImage = null;
-            uploadedHTML = null;
-            selectedRating = 3;
-            editingId = null;
-            updateRatingStars();
-        }
-
-        // File upload utils
-        function setupFileUploads(){
-            setupFileUpload('imageUpload','imageInput','imagePreview',true);
-            setupFileUpload('htmlUpload','htmlInput','htmlPreview',false);
-        }
-
-        function setupFileUpload(dropAreaId, inputId, previewId, isImage){
-            const dropArea = document.getElementById(dropAreaId);
-            const input = document.getElementById(inputId);
-            const preview = document.getElementById(previewId);
-
-            // click to open
-            dropArea.addEventListener('click', ()=> input.click());
-
-            // prevent defaults & visual feedback
-            ['dragenter','dragover','dragleave','drop'].forEach(evt => {
-                dropArea.addEventListener(evt, preventDefaults, false);
-            });
-
-            ['dragenter','dragover'].forEach(evt => {
-                dropArea.addEventListener(evt, ()=> dropArea.classList.add('dragover'), false);
-            });
-            ['dragleave','drop'].forEach(evt => {
-                dropArea.addEventListener(evt, ()=> dropArea.classList.remove('dragover'), false);
-            });
-
-            dropArea.addEventListener('drop', handleDrop, false);
-            input.addEventListener('change', handleChange, false);
-
-            function handleDrop(e){
-                const dt = e.dataTransfer;
-                const files = dt && dt.files ? dt.files : [];
-                if (files && files.length > 0) handleFile(files[0]);
-            }
-
-            function handleChange(e){
-                const files = e.target.files || [];
-                if (files && files.length > 0) handleFile(files[0]);
-            }
-
-            function handleFile(file){
-                if (!file) return;
-                if (isImage) {
-                    if (!file.type.startsWith('image/')) { showToast('Please select an image file', true); return; }
-                    uploadedImage = file;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        preview.innerHTML = `
-                            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
-                                <img src="${ev.target.result}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
-                                <div style="flex:1">
-                                    <div style="font-weight:700">${escapeHtml(file.name)}</div>
-                                    <div style="color:var(--gray);font-size:0.85rem">${formatFileSize(file.size)}</div>
-                                </div>
-                                <button class="btn btn-sm" onclick="removeUploaded('image')" type="button"><i class="fas fa-times"></i></button>
-                            </div>
-                        `;
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    // html file
-                    if (!file.name.toLowerCase().endsWith('.html')) { showToast('Please select an HTML file', true); return; }
-                    uploadedHTML = file;
-                    preview.innerHTML = `
-                        <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
-                            <div style="width:48px;height:48px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white"><i class="fas fa-file-code"></i></div>
                             <div style="flex:1">
-                                <div style="font-weight:700">${escapeHtml(file.name)}</div>
-                                <div style="color:var(--gray);font-size:0.85rem">${formatFileSize(file.size)}</div>
+                                <h3 style="margin:0;font-size:1rem">${escapeHtml(app.name)}</h3>
+                                <small style="color:var(--gray)">${app.downloads || 0} downloads</small>
                             </div>
-                            <button class="btn btn-sm" onclick="removeUploaded('html')" type="button"><i class="fas fa-times"></i></button>
                         </div>
-                    `;
-                }
-            }
-        }
-
-        function removeUploaded(type){
-            if (type === 'image') {
-                uploadedImage = null;
-                document.getElementById('imageInput').value = '';
-                document.getElementById('imagePreview').innerHTML = '';
-            } else {
-                uploadedHTML = null;
-                document.getElementById('htmlInput').value = '';
-                document.getElementById('htmlPreview').innerHTML = '';
-            }
-        }
-
-        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-
-        function formatFileSize(bytes){
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024; const sizes = ['Bytes','KB','MB','GB'];
-            const i = Math.floor(Math.log(bytes)/Math.log(k));
-            return (bytes/Math.pow(k,i)).toFixed(1)+' '+sizes[i];
-        }
-
-        // Rating
-        function setRating(r) { selectedRating = r; document.getElementById('appRating').value = r; updateRatingStars(); }
-        function updateRatingStars(){
-            document.querySelectorAll('#ratingStars .star').forEach(star=>{
-                const v = parseInt(star.getAttribute('data-value'),10);
-                star.className = (v <= selectedRating) ? 'fas fa-star star' : 'fas fa-star star-empty';
-                star.style.color = (v <= selectedRating) ? '' : 'rgba(255,255,255,0.35)';
+                        
+                        <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+                            ${categories.map(function(cat) {
+                                return `<span class="tag">${escapeHtml(cat)}</span>`;
+                            }).join('')}
+                        </div>
+                        
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem">
+                            ${'⭐'.repeat(rating)}${'☆'.repeat(5 - rating)}
+                        </div>
+                        
+                        <p style="color:var(--gray);margin:0.6rem 0 0;font-size:0.9rem">
+                            ${escapeHtml(app.description || 'No description')}
+                        </p>
+                        
+                        <div class="app-actions">
+                            <button class="btn btn-primary" ${app.isLocked ? 'disabled style="opacity:0.5"' : ''} onclick="runApp('${app.id}')">
+                                <i class="fas fa-play"></i> ${app.isLocked ? 'Locked' : 'Run'}
+                            </button>
+                            <button class="btn btn-secondary" onclick="downloadApp('${app.id}')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="btn btn-sm" onclick="editApp('${app.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
             });
+            
+            appGrid.innerHTML = html;
         }
 
-        // Modal
-        function openAdminPanel(){
-            if (isLocked) { showToast('Please unlock first', true); return; }
-            document.getElementById('modalOverlay').style.display = 'block';
+        function updateStats() {
+            document.getElementById('totalApps').textContent = applications.length;
+            document.getElementById('featuredApps').textContent = applications.filter(function(a) {
+                return a.isFeatured;
+            }).length;
+            document.getElementById('lockedApps').textContent = applications.filter(function(a) {
+                return a.isLocked;
+            }).length;
+            
+            const categories = new Set();
+            applications.forEach(function(app) {
+                if (Array.isArray(app.categories)) {
+                    app.categories.forEach(function(cat) {
+                        categories.add(cat);
+                    });
+                }
+            });
+            document.getElementById('categories').textContent = categories.size;
+        }
+
+        // App Actions
+        function runApp(appId) {
+            if (!isUnlocked) {
+                showToast('Please unlock the app store first', true);
+                return;
+            }
+            
+            const app = applications.find(function(a) {
+                return a.id === appId;
+            });
+            if (!app) {
+                showToast('Application not found', true);
+                return;
+            }
+            
+            if (app.isLocked) {
+                showToast('This application is locked', true);
+                return;
+            }
+            
+            try {
+                const newWindow = window.open('', '_blank');
+                if (newWindow) {
+                    newWindow.document.write(app.htmlContent);
+                    newWindow.document.close();
+                    showToast('Running ' + app.name);
+                    
+                    // Update run count
+                    app.downloads = (app.downloads || 0) + 1;
+                    saveAppToFirebase(app, true);
+                } else {
+                    showToast('Please allow popups to run applications', true);
+                }
+            } catch (error) {
+                console.error('Error running app:', error);
+                showToast('Error running application', true);
+            }
+        }
+
+        function downloadApp(appId) {
+            if (!isUnlocked) {
+                showToast('Please unlock the app store first', true);
+                return;
+            }
+            
+            const app = applications.find(function(a) {
+                return a.id === appId;
+            });
+            if (!app) {
+                showToast('Application not found', true);
+                return;
+            }
+            
+            try {
+                const blob = new Blob([app.htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = app.name.replace(/\s+/g, '_').toLowerCase() + '.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Update download count
+                app.downloads = (app.downloads || 0) + 1;
+                saveAppToFirebase(app, true);
+                
+                showToast(app.name + ' downloaded!');
+            } catch (error) {
+                console.error('Error downloading app:', error);
+                showToast('Error downloading application', true);
+            }
+        }
+
+        // Modal Functions
+        function openAdminPanel() {
+            if (!isUnlocked) {
+                showToast('Please unlock the app store first', true);
+                return;
+            }
+            
             document.getElementById('adminModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
-        function closeModal(){
-            document.getElementById('modalOverlay').style.display = 'none';
+
+        function closeModal() {
             document.getElementById('adminModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
             document.body.style.overflow = 'auto';
             clearForm();
         }
 
-        // Search
-        function handleSearch(e){
-            const term = (e.target.value || '').trim().toLowerCase();
-            const appGrid = document.getElementById('appGrid');
-            if (!term) { renderAllApplications(); return; }
-            const filtered = applications.filter(app => {
-                return (app.name||'').toLowerCase().includes(term)
-                    || (app.description||'').toLowerCase().includes(term)
-                    || (Array.isArray(app.categories) && app.categories.join(' ').toLowerCase().includes(term));
-            });
-            if (!filtered || filtered.length === 0) {
-                appGrid.innerHTML = `<div class="empty-state"><div style="font-size:2rem;color:var(--glass-border)"><i class="fas fa-search"></i></div><p>No applications found for "${escapeHtml(term)}"</p></div>`;
+        function clearForm() {
+            document.getElementById('appForm').reset();
+            document.getElementById('appId').value = '';
+            document.getElementById('modalTitle').textContent = 'Add New Application';
+            document.getElementById('saveBtn').innerHTML = '<i class="fas fa-plus"></i> Add Application';
+            document.getElementById('deleteBtn').style.display = 'none';
+            document.getElementById('appRating').value = '3';
+        }
+
+        function editApp(appId) {
+            if (!isUnlocked) {
+                showToast('Please unlock the app store first', true);
                 return;
             }
-            appGrid.innerHTML = filtered.map(app => {
-                const lockedBadge = app.isLocked ? `<div class="badge badge-locked" style="position:absolute;top:0.75rem;right:0.75rem;"><i class="fas fa-lock"></i> Locked</div>` : '';
-                return `
-                    <div class="app-card glass">
-                        ${lockedBadge}
-                        <img class="app-image" src="${escapeHtml(app.image||defaultImage())}" alt="${escapeHtml(app.name)}" onerror="this.src='${defaultImage()}';">
-                        <div class="app-content">
-                            <div class="app-header"><div class="app-icon"><i class="${escapeHtml(app.icon)}" style="color:white"></i></div><div style="flex:1"><h3 style="margin:0">${escapeHtml(app.name)}</h3></div></div>
-                            <p style="color:var(--gray)">${escapeHtml(app.description||'')}</p>
-                            <div class="app-actions" style="margin-top:0.6rem">
-                                <button class="btn btn-primary" ${app.isLocked ? 'disabled style="opacity:0.5"' : ''} onclick="runApplication(${app.id})"><i class="fas fa-play"></i> ${app.isLocked ? 'Locked' : 'Run'}</button>
-                                <button class="btn btn-secondary" onclick="downloadApplication(${app.id})"><i class="fas fa-download"></i> Download</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            
+            const app = applications.find(function(a) {
+                return a.id === appId;
+            });
+            if (!app) {
+                showToast('Application not found', true);
+                return;
+            }
+            
+            document.getElementById('appId').value = app.id;
+            document.getElementById('appName').value = app.name;
+            document.getElementById('appIcon').value = app.icon || 'fas fa-box';
+            document.getElementById('appCategories').value = Array.isArray(app.categories) ? app.categories.join(', ') : '';
+            document.getElementById('appRating').value = app.rating || 3;
+            document.getElementById('appDescription').value = app.description || '';
+            document.getElementById('appHtmlContent').value = app.htmlContent || '';
+            document.getElementById('isLocked').checked = app.isLocked || false;
+            document.getElementById('isFeatured').checked = app.isFeatured || false;
+            
+            document.getElementById('modalTitle').textContent = 'Edit Application';
+            document.getElementById('saveBtn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            document.getElementById('deleteBtn').style.display = 'block';
+            
+            openAdminPanel();
+            showToast('Editing ' + app.name);
         }
 
-        // Utility & helpers
-        function showToast(message, isError=false){
+        function saveApplication() {
+            if (!isUnlocked) {
+                showToast('Please unlock the app store first', true);
+                return;
+            }
+            
+            const appId = document.getElementById('appId').value;
+            const isEditing = appId !== '';
+            
+            const appData = {
+                name: document.getElementById('appName').value.trim(),
+                icon: document.getElementById('appIcon').value,
+                categories: document.getElementById('appCategories').value.split(',').map(function(c) {
+                    return c.trim();
+                }).filter(function(c) {
+                    return c;
+                }),
+                rating: parseInt(document.getElementById('appRating').value) || 3,
+                description: document.getElementById('appDescription').value,
+                htmlContent: document.getElementById('appHtmlContent').value,
+                isLocked: document.getElementById('isLocked').checked,
+                isFeatured: document.getElementById('isFeatured').checked,
+                downloads: 0,
+                createdAt: new Date().toISOString()
+            };
+            
+            if (!appData.name) {
+                showToast('Please enter app name', true);
+                return;
+            }
+            
+            if (!appData.htmlContent) {
+                showToast('Please add HTML content', true);
+                return;
+            }
+            
+            if (isEditing) {
+                appData.id = appId;
+                // Find existing app to preserve downloads
+                const existingApp = applications.find(function(a) {
+                    return a.id === appId;
+                });
+                if (existingApp) {
+                    appData.downloads = existingApp.downloads || 0;
+                    appData.createdAt = existingApp.createdAt;
+                }
+                saveAppToFirebase(appData, true);
+            } else {
+                saveAppToFirebase(appData, false);
+            }
+            
+            closeModal();
+            clearForm();
+        }
+
+        function deleteApplication() {
+            if (!isUnlocked) {
+                showToast('Please unlock the app store first', true);
+                return;
+            }
+            
+            const appId = document.getElementById('appId').value;
+            if (appId && confirm('Are you sure you want to delete this application?')) {
+                deleteAppFromFirebase(appId);
+                closeModal();
+            }
+        }
+
+        // Template Functions
+        function loadTemplate(templateName) {
+            const templates = {
+                calculator: `<!DOCTYPE html><html><head><title>Calculator</title><style>body{font-family:Arial;margin:0;padding:20px;background:#f0f0f0;}.calculator{max-width:300px;margin:0 auto;background:white;padding:20px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}.display{padding:20px;font-size:24px;text-align:right;background:#333;color:white;border-radius:5px;margin-bottom:10px;}.buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}button{padding:20px;font-size:18px;border:none;border-radius:5px;cursor:pointer;background:#e0e0e0;}button:hover{background:#d0d0d0;}.equals{background:#4CAF50;color:white;}.clear{background:#f44336;color:white;}</style></head><body><div class="calculator"><div class="display" id="display">0</div><div class="buttons"><button class="clear" onclick="clearDisplay()">C</button><button onclick="append('/')">/</button><button onclick="append('*')">×</button><button onclick="append('-')">-</button><button onclick="append('7')">7</button><button onclick="append('8')">8</button><button onclick="append('9')">9</button><button onclick="append('+')">+</button><button onclick="append('4')">4</button><button onclick="append('5')">5</button><button onclick="append('6')">6</button><button onclick="append('1')">1</button><button onclick="append('2')">2</button><button onclick="append('3')">3</button><button class="equals" onclick="calculate()">=</button><button onclick="append('0')">0</button><button onclick="append('.')">.</button></div></div><script>let display=document.getElementById('display');let current='0';function append(value){if(current==='0'){current=value}else{current+=value}display.textContent=current}function clearDisplay(){current='0';display.textContent=current}function calculate(){try{current=eval(current).toString();display.textContent=current}catch(e){display.textContent='Error';current='0'}}<\/script></body></html>`,
+                todo: `<!DOCTYPE html><html><head><title>Todo List</title><style>body{font-family:Arial;margin:0;padding:20px;background:#f0f0f0;}.container{max-width:500px;margin:0 auto;background:white;padding:30px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}h1{text-align:center;color:#333;}.input-group{display:flex;gap:10px;margin-bottom:20px;}input{flex:1;padding:10px;border:1px solid #ddd;border-radius:5px;}button{padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;}.todo-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:#f9f9f9;margin-bottom:5px;border-radius:5px;}.delete{background:#f44336;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;}</style></head><body><div class="container"><h1>📝 Todo List</h1><div class="input-group"><input type="text" id="todoInput" placeholder="Add a new task..."><button onclick="addTodo()">Add</button></div><div id="todoList"></div></div><script>function loadTodos(){let todos=JSON.parse(localStorage.getItem('todos')||'[]');let list=document.getElementById('todoList');list.innerHTML='';todos.forEach((todo,index)=>{let item=document.createElement('div');item.className='todo-item';item.innerHTML='<span>'+todo+'</span><button class="delete" onclick="deleteTodo('+index+')">Delete</button>';list.appendChild(item);});}function addTodo(){let input=document.getElementById('todoInput');let todo=input.value.trim();if(todo){let todos=JSON.parse(localStorage.getItem('todos')||'[]');todos.push(todo);localStorage.setItem('todos',JSON.stringify(todos));input.value='';loadTodos();}}function deleteTodo(index){let todos=JSON.parse(localStorage.getItem('todos')||'[]');todos.splice(index,1);localStorage.setItem('todos',JSON.stringify(todos));loadTodos();}loadTodos();document.getElementById('todoInput').addEventListener('keypress',(e)=>{if(e.key==='Enter')addTodo();});<\/script></body></html>`,
+                timer: `<!DOCTYPE html><html><head><title>Timer</title><style>body{font-family:Arial;margin:0;padding:0;background:linear-gradient(135deg,#667eea,#764ba2);color:white;height:100vh;display:flex;justify-content:center;align-items:center;}.timer-container{text-align:center;}.timer{font-size:5em;margin:20px 0;}.buttons button{padding:15px 30px;margin:10px;font-size:18px;border:none;border-radius:5px;cursor:pointer;}.start{background:#4CAF50;color:white;}.stop{background:#f44336;color:white;}.reset{background:#2196F3;color:white;}</style></head><body><div class="timer-container"><h1>⏱️ Timer</h1><div class="timer" id="timer">00:00:00</div><div class="buttons"><button class="start" onclick="startTimer()">Start</button><button class="stop" onclick="stopTimer()">Stop</button><button class="reset" onclick="resetTimer()">Reset</button></div></div><script>let seconds=0;let timer;function updateTimer(){seconds++;let hrs=Math.floor(seconds/3600);let mins=Math.floor((seconds%3600)/60);let secs=seconds%60;document.getElementById('timer').textContent=String(hrs).padStart(2,'0')+':'+String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');}function startTimer(){if(!timer){timer=setInterval(updateTimer,1000);}}function stopTimer(){clearInterval(timer);timer=null;}function resetTimer(){stopTimer();seconds=0;document.getElementById('timer').textContent='00:00:00';}<\/script></body></html>`,
+                notes: `<!DOCTYPE html><html><head><title>Notes App</title><style>body{font-family:Arial;margin:0;padding:20px;background:#f0f0f0;}.container{max-width:600px;margin:0 auto;background:white;padding:30px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}h1{text-align:center;color:#333;}.input-group{display:flex;gap:10px;margin-bottom:20px;}input,textarea{flex:1;padding:10px;border:1px solid #ddd;border-radius:5px;}textarea{min-height:100px;resize:vertical;}button{padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:5px;cursor:pointer;}.note-item{background:#f9f9f9;padding:15px;margin-bottom:10px;border-radius:5px;border-left:4px solid #4CAF50;}.delete{background:#f44336;color:white;padding:5px 10px;border:none;border-radius:3px;cursor:pointer;float:right;}</style></head><body><div class="container"><h1>📒 Notes App</h1><div class="input-group"><input type="text" id="noteTitle" placeholder="Note title..."></div><div class="input-group"><textarea id="noteContent" placeholder="Note content..."></textarea></div><button onclick="addNote()">Add Note</button><div id="notesList" style="margin-top:20px;"></div></div><script>function loadNotes(){let notes=JSON.parse(localStorage.getItem('notes')||'[]');let list=document.getElementById('notesList');list.innerHTML='';notes.forEach((note,index)=>{let item=document.createElement('div');item.className='note-item';item.innerHTML='<h3>'+note.title+'</h3><p>'+note.content+'</p><button class="delete" onclick="deleteNote('+index+')">Delete</button>';list.appendChild(item);});}function addNote(){let title=document.getElementById('noteTitle').value.trim();let content=document.getElementById('noteContent').value.trim();if(title&&content){let notes=JSON.parse(localStorage.getItem('notes')||'[]');notes.push({title:title,content:content});localStorage.setItem('notes',JSON.stringify(notes));document.getElementById('noteTitle').value='';document.getElementById('noteContent').value='';loadNotes();}}function deleteNote(index){let notes=JSON.parse(localStorage.getItem('notes')||'[]');notes.splice(index,1);localStorage.setItem('notes',JSON.stringify(notes));loadNotes();}loadNotes();<\/script></body></html>`
+            };
+            
+            if (templates[templateName]) {
+                document.getElementById('appHtmlContent').value = templates[templateName];
+                showToast('Loaded ' + templateName + ' template');
+            }
+        }
+
+        // Utility Functions
+        function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
-            const msg = document.getElementById('toastMessage');
-            msg.textContent = message;
-            toast.className = `toast ${isError ? 'toast-error' : 'toast-success'} show`;
-            if (toastTimeout) clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(()=> { toast.classList.remove('show'); }, 3000);
+            const messageEl = document.getElementById('toastMessage');
+            
+            messageEl.textContent = message;
+            toast.className = 'toast ' + (isError ? 'toast-error' : 'toast-success');
+            toast.classList.add('show');
+            
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
-        function escapeHtml(s){ if (!s && s!==0) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-        function defaultImage(){ return 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?auto=format&fit=crop&w=800&q=80'; }
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-        // small helper: start editing an app (invoked from UI)
-        function editApplication(id){ startEditApplication(id); }
-
-        // expose deleteApplication to global (used inline)
-        window.deleteApplication = deleteApplication;
-        window.editApplication = editApplication;
-        window.runApplication = runApplication;
-        window.downloadApplication = downloadApplication;
+        // Make functions available globally
+        window.unlockAppStore = unlockAppStore;
+        window.lockApp = lockApp;
+        window.runApp = runApp;
+        window.downloadApp = downloadApp;
+        window.editApp = editApp;
         window.openAdminPanel = openAdminPanel;
-        window.removeUploaded = removeUploaded;
-
-        // small CSS for shake included early
-        // done
+        window.closeModal = closeModal;
+        window.saveApplication = saveApplication;
+        window.deleteApplication = deleteApplication;
+        window.loadTemplate = loadTemplate;
     </script>
 </body>
 </html>
