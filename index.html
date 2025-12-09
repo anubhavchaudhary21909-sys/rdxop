@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MTAIIRUS App Store — Fixed</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{
+            --primary:#6366f1; --primary-dark:#4f46e5; --primary-light:#818cf8;
+            --secondary:#10b981; --danger:#ef4444; --warning:#f59e0b;
+            --dark:#0f172a; --darker:#020617; --light:#f8fafc; --gray:#64748b;
+            --glass-bg: rgba(255,255,255,0.05); --glass-border: rgba(255,255,255,0.1);
+            --shadow: 0 8px 32px rgba(0,0,0,0.3);
+            --space-sm: 0.5rem; --space-md: 1rem; --space-lg:1.5rem; --space-xl:2rem;
+            --radius-md:0.75rem; --radius-lg:1rem;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg,var(--darker),var(--dark));
+            color:var(--light); min-height:100vh; line-height:1.6; overflow-x:hidden;
+        }
+        .glass{ background:var(--glass-bg); backdrop-filter:blur(16px); border:1px solid var(--glass-border); border-radius:var(--radius-lg); box-shadow:var(--shadow);}
+        .gradient-text{ background:linear-gradient(90deg,var(--primary),var(--primary-light)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .container{max-width:1200px;margin:0 auto;padding:0 var(--space-lg);}
+
+        .btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1rem;border-radius:0.75rem;border:none;cursor:pointer;font-weight:600;transition:all 0.2s}
+        .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white}
+        .btn-secondary{background:linear-gradient(135deg,var(--secondary),#059669);color:white}
+        .btn-danger{background:linear-gradient(135deg,var(--danger),#dc2626);color:white}
+        .btn-sm{padding:0.35rem 0.6rem;font-size:0.8rem}
+
+        .header{position:sticky;top:0;background:rgba(15,23,42,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--glass-border);padding:0.8rem 0;z-index:100;}
+        .header-content{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+
+        .logo{display:flex;align-items:center;gap:0.75rem;text-decoration:none;color:inherit}
+        .logo-icon{width:2.5rem;height:2.5rem;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:0.75rem;display:flex;align-items:center;justify-content:center}
+        .logo-text{font-size:1.25rem;font-weight:700}
+
+        .badge{display:inline-flex;align-items:center;gap:0.5rem;padding:0.25rem 0.6rem;border-radius:999px;font-weight:700}
+        .badge-locked{background:rgba(239,68,68,0.08);color:var(--danger)}
+        .badge-unlocked{background:rgba(16,185,129,0.08);color:var(--secondary)}
+
+        .search-container{position:relative;max-width:36rem;margin:2rem auto}
+        .search-bar{width:100%;padding:1rem 1.25rem 1rem 3.5rem;border-radius:1rem;background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--light)}
+        .search-icon{position:absolute;left:1.1rem;top:50%;transform:translateY(-50%);color:var(--gray)}
+
+        .stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1rem;margin:1.5rem auto;max-width:48rem}
+        .stat-card{padding:1rem;text-align:center}
+        .stat-number{font-size:1.6rem;font-weight:800;color:var(--primary);display:block}
+
+        .app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(20rem,1fr));gap:1.25rem;margin:1.5rem 0}
+        .app-card{position:relative;display:flex;flex-direction:column;overflow:hidden;border-radius:0.75rem;transition:transform 0.2s}
+        .app-card:hover{transform:translateY(-6px)}
+        .app-image{width:100%;height:12rem;object-fit:cover;border-bottom:1px solid var(--glass-border)}
+        .app-content{padding:1rem;display:flex;flex-direction:column;gap:0.5rem}
+        .app-header{display:flex;align-items:flex-start;gap:0.75rem}
+        .app-icon{width:3rem;height:3rem;border-radius:0.75rem;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center}
+        .tag{background:rgba(99,102,241,0.08);color:var(--primary-light);padding:0.15rem 0.5rem;border-radius:999px;font-weight:600;font-size:0.75rem}
+
+        .app-actions{display:flex;gap:0.5rem;margin-top:auto}
+        .app-actions .btn{flex:1}
+
+        .admin-controls{position:fixed;bottom:2rem;right:2rem;display:flex;flex-direction:column;gap:0.75rem;z-index:99}
+        .admin-btn{width:3.5rem;height:3.5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+
+        .modal-overlay{position:fixed;inset:0;background:rgba(2,6,23,0.7);backdrop-filter:blur(6px);z-index:1000;display:none}
+        .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:48rem;max-height:90vh;overflow:auto;z-index:1001;padding:1rem;display:none}
+        .modal-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:0.6rem;border-bottom:1px solid var(--glass-border)}
+        .modal-close{background:none;border:none;color:var(--gray);font-size:1.2rem;cursor:pointer}
+
+        .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:0.75rem;margin-bottom:1rem}
+        .form-label{font-weight:700;font-size:0.9rem;color:var(--gray);margin-bottom:0.25rem}
+        .form-input,.form-select,.form-textarea{width:100%;padding:0.65rem;border-radius:0.6rem;background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--light)}
+        .form-textarea{min-height:6rem;resize:vertical}
+
+        .upload-area{border:2px dashed var(--glass-border);border-radius:0.75rem;padding:1.25rem;text-align:center;background:var(--glass-bg);cursor:pointer}
+        .upload-area.dragover{border-color:var(--primary);background:rgba(99,102,241,0.06)}
+        .upload-icon{font-size:2.25rem;color:var(--primary);margin-bottom:0.5rem}
+
+        .apps-list{max-height:20rem;overflow:auto;margin-top:0.75rem}
+        .app-item{display:flex;align-items:center;justify-content:space-between;padding:0.6rem;background:var(--glass-bg);border-radius:0.5rem;margin-bottom:0.5rem}
+        .app-item-icon{width:2.5rem;height:2.5rem;border-radius:0.5rem;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center}
+
+        .toast{position:fixed;top:1rem;right:1rem;padding:0.6rem 1rem;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:0.6rem;display:flex;align-items:center;gap:0.6rem;z-index:1002;transform:translateX(120%);transition:transform 0.25s}
+        .toast.show{transform:translateX(0)}
+        .toast-success{border-left:4px solid var(--secondary)}
+        .toast-error{border-left:4px solid var(--danger)}
+
+        .empty-state{padding:1.5rem;text-align:center;color:var(--gray)}
+        @media(max-width:768px){ .app-grid{grid-template-columns:1fr} .header-content{flex-direction:column;gap:0.6rem} .admin-controls{bottom:1rem;right:1rem} }
+        @keyframes shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-5px)}20%,40%,60%,80%{transform:translateX(5px)}}
+    </style>
+</head>
+<body>
+    <!-- Lock Screen -->
+    <div id="lockScreen" class="lock-screen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;">
+        <div class="glass" style="width:100%;max-width:28rem;padding:1.5rem;text-align:center;">
+            <h1 class="gradient-text" style="font-size:1.75rem;margin-bottom:0.5rem">MTAIIRUS</h1>
+            <p style="color:var(--gray);margin-bottom:1rem">Enter your password to access the application store</p>
+            <div class="lock-form" style="display:flex;flex-direction:column;gap:0.75rem">
+                <input id="lockPassword" type="password" placeholder="Enter password" maxlength="40" style="padding:0.85rem;border-radius:0.6rem;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);color:var(--light);text-align:center;font-weight:700" autofocus>
+                <button class="btn btn-primary" id="unlockBtn"><i class="fas fa-unlock"></i><span>Unlock</span></button>
+                <div id="lockError" style="color:var(--danger);display:none;font-size:0.9rem"><i class="fas fa-exclamation-circle"></i> Incorrect password</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" style="display:none;">
+        <header class="header">
+            <div class="container header-content">
+                <a class="logo" href="#">
+                    <div class="logo-icon"><i class="fas fa-store" style="color:white"></i></div>
+                    <span class="logo-text gradient-text">MTAIIRUS</span>
+                </a>
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <div id="statusBadge" class="badge badge-locked"><i class="fas fa-shield-alt"></i><span>Locked</span></div>
+                    <button id="lockBtn" class="btn btn-sm" title="Lock/Unlock"><i class="fas fa-lock"></i><span> Lock</span></button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input id="searchBar" class="search-bar" type="text" placeholder="Search applications...">
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-card glass"><span id="totalApps" class="stat-number">0</span><span class="stat-label">Total Apps</span></div>
+                <div class="stat-card glass"><span id="featuredApps" class="stat-number">0</span><span class="stat-label">Featured</span></div>
+                <div class="stat-card glass"><span id="lockedApps" class="stat-number">0</span><span class="stat-label">Locked</span></div>
+                <div class="stat-card glass"><span id="categories" class="stat-number">0</span><span class="stat-label">Categories</span></div>
+            </div>
+
+            <section>
+                <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <div class="logo-icon"><i class="fas fa-th-large" style="color:white"></i></div>
+                        <h2 style="font-size:1.1rem">All Applications</h2>
+                    </div>
+                </div>
+
+                <div id="appGrid" class="app-grid">
+                    <!-- apps -->
+                </div>
+            </section>
+        </main>
+
+        <div class="admin-controls">
+            <button id="adminBtn" class="btn btn-primary admin-btn" title="Admin"><i class="fas fa-cog"></i></button>
+        </div>
+    </div>
+
+    <!-- Modal overlay -->
+    <div id="modalOverlay" class="modal-overlay" onclick=""></div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="modal glass" role="dialog" aria-modal="true" aria-labelledby="adminTitle" style="display:none;">
+        <div class="modal-header">
+            <h3 id="adminTitle" style="display:flex;align-items:center;gap:0.5rem"><i class="fas fa-cog"></i> Admin Panel</h3>
+            <button class="modal-close" id="modalCloseBtn" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="modal-body">
+            <form id="appForm" onsubmit="return false;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Application Name *</label>
+                        <input id="appName" class="form-input" type="text" placeholder="Enter app name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Icon</label>
+                        <select id="appIcon" class="form-select">
+                            <option value="fas fa-box">Default</option>
+                            <option value="fas fa-gamepad">Game</option>
+                            <option value="fas fa-tools">Tool</option>
+                            <option value="fas fa-graduation-cap">Education</option>
+                            <option value="fas fa-music">Music</option>
+                            <option value="fas fa-video">Video</option>
+                            <option value="fas fa-code">Code</option>
+                            <option value="fas fa-chart-bar">Analytics</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Categories</label>
+                        <input id="appCategories" class="form-input" type="text" placeholder="Tools, Productivity">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rating</label>
+                        <div id="ratingStars" class="rating" style="display:flex;gap:6px">
+                            <i class="fas fa-star star" data-value="1" style="cursor:pointer"></i>
+                            <i class="fas fa-star star" data-value="2" style="cursor:pointer"></i>
+                            <i class="fas fa-star star" data-value="3" style="cursor:pointer"></i>
+                            <i class="fas fa-star star" data-value="4" style="cursor:pointer"></i>
+                            <i class="fas fa-star star" data-value="5" style="cursor:pointer"></i>
+                        </div>
+                        <input id="appRating" type="hidden" value="3">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="appDescription" class="form-textarea" placeholder="Enter app description"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Application Image (Optional)</label>
+                    <div id="imageUpload" class="upload-area">
+                        <div class="upload-icon"><i class="fas fa-image"></i></div>
+                        <p>Drag & drop image here</p>
+                        <p style="font-size:0.85rem;color:var(--gray)">or click to browse</p>
+                        <input id="imageInput" type="file" accept="image/*" hidden>
+                    </div>
+                    <div id="imagePreview"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">HTML File *</label>
+                    <div id="htmlUpload" class="upload-area">
+                        <div class="upload-icon"><i class="fas fa-file-code"></i></div>
+                        <p>Drag & drop HTML file here</p>
+                        <p style="font-size:0.85rem;color:var(--gray)">or click to browse</p>
+                        <input id="htmlInput" type="file" accept=".html" hidden>
+                    </div>
+                    <div id="htmlPreview"></div>
+                </div>
+
+                <div class="form-grid" style="align-items:center">
+                    <div style="display:flex;align-items:center;gap:0.5rem">
+                        <input id="isLocked" type="checkbox">
+                        <label for="isLocked" class="form-label" style="margin:0">Lock application</label>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.5rem">
+                        <input id="isFeatured" type="checkbox">
+                        <label for="isFeatured" class="form-label" style="margin:0">Mark as featured</label>
+                    </div>
+                </div>
+            </form>
+
+            <div class="current-apps">
+                <h4 style="margin-top:0.5rem">Current Applications</h4>
+                <div id="currentAppsList" class="apps-list"></div>
+            </div>
+        </div>
+
+        <div class="modal-footer" style="display:flex;gap:0.5rem;justify-content:flex-end;padding-top:0.6rem;border-top:1px solid var(--glass-border)">
+            <button id="modalCancel" class="btn">Cancel</button>
+            <button id="modalAdd" class="btn btn-primary"><i class="fas fa-plus"></i> Add Application</button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"><i class="fas fa-check-circle"></i><span id="toastMessage">Operation completed</span></div>
+
+    <script>
+        // Constants
+        const APP_PASSWORD = "mtaiirus2024";
+        const STORAGE_KEYS = { APPS: 'mtaiirus_apps', UNLOCKED: 'mtaiirus_unlocked', UNLOCK_TIME: 'mtaiirus_unlock_time' };
+
+        // State
+        let isLocked = true;
+        let applications = [];
+        let selectedRating = 3;
+        let uploadedImage = null;
+        let uploadedHTML = null;
+        let editingId = null; // if editing existing app
+        let toastTimeout = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            bindDom();
+            loadApplications();
+            checkUnlockStatus();
+            setupFileUploads();
+            updateRatingStars();
+            renderApplications();
+        });
+
+        // DOM caching & event wiring
+        function bindDom() {
+            document.getElementById('unlockBtn').addEventListener('click', unlockAppStore);
+            document.getElementById('lockBtn').addEventListener('click', toggleLock);
+            document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
+            document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+            document.getElementById('modalCancel').addEventListener('click', closeModal);
+            document.getElementById('modalAdd').addEventListener('click', addOrUpdateApplication);
+            document.getElementById('lockPassword').addEventListener('keypress', e => { if (e.key === 'Enter') unlockAppStore(); });
+            document.getElementById('searchBar').addEventListener('input', handleSearch);
+            document.getElementById('modalOverlay').addEventListener('click', closeModal);
+
+            // keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === '/') { e.preventDefault(); document.getElementById('searchBar').focus(); }
+                if (e.key === 'Escape') { closeModal(); }
+                if (e.ctrlKey && e.key.toLowerCase() === 'k' && !isLocked) { e.preventDefault(); openAdminPanel(); }
+            });
+
+            // rating stars click
+            document.querySelectorAll('#ratingStars .star').forEach(star => {
+                star.addEventListener('click', () => {
+                    const v = parseInt(star.getAttribute('data-value'), 10);
+                    setRating(v);
+                });
+            });
+
+            // global prevent default for drag/drop outside upload areas
+            window.addEventListener('dragover', preventDefaults, false);
+            window.addEventListener('drop', preventDefaults, false);
+        }
+
+        // Unlock logic
+        function checkUnlockStatus() {
+            const unlocked = localStorage.getItem(STORAGE_KEYS.UNLOCKED) === 'true';
+            const unlockTime = parseInt(localStorage.getItem(STORAGE_KEYS.UNLOCK_TIME) || '0', 10);
+            const thirtyMinutes = 30 * 60 * 1000;
+            if (unlocked && (Date.now() - unlockTime < thirtyMinutes)) {
+                performUnlockUI();
+                saveUnlockStatus(); // refresh time
+                showToast('Unlocked (remembered)');
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.UNLOCKED);
+                localStorage.removeItem(STORAGE_KEYS.UNLOCK_TIME);
+                // ensure lock screen visible
+                document.getElementById('lockScreen').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+                isLocked = true;
+            }
+        }
+
+        function unlockAppStore() {
+            const pass = document.getElementById('lockPassword').value || '';
+            const error = document.getElementById('lockError');
+            if (pass === APP_PASSWORD) {
+                performUnlockUI();
+                saveUnlockStatus();
+                error.style.display = 'none';
+                document.getElementById('lockPassword').value = '';
+                showToast('Application unlocked successfully');
+            } else {
+                error.style.display = 'block';
+                document.getElementById('lockPassword').value = '';
+                document.getElementById('lockPassword').focus();
+                // shake
+                const lockForm = document.querySelector('.lock-form');
+                lockForm.style.animation = 'none';
+                setTimeout(()=> lockForm.style.animation = 'shake 0.45s', 10);
+            }
+        }
+
+        function performUnlockUI() {
+            isLocked = false;
+            document.getElementById('lockScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            const badge = document.getElementById('statusBadge');
+            badge.className = 'badge badge-unlocked';
+            badge.innerHTML = '<i class="fas fa-shield-alt"></i><span>Unlocked</span>';
+            const lockBtn = document.getElementById('lockBtn');
+            lockBtn.innerHTML = '<i class="fas fa-lock"></i><span> Lock</span>';
+        }
+
+        function toggleLock() {
+            if (isLocked) {
+                document.getElementById('lockScreen').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('lockPassword').focus();
+            } else {
+                lockApp();
+            }
+        }
+
+        function lockApp() {
+            isLocked = true;
+            localStorage.removeItem(STORAGE_KEYS.UNLOCKED);
+            localStorage.removeItem(STORAGE_KEYS.UNLOCK_TIME);
+            document.getElementById('lockScreen').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            const badge = document.getElementById('statusBadge');
+            badge.className = 'badge badge-locked';
+            badge.innerHTML = '<i class="fas fa-shield-alt"></i><span>Locked</span>';
+            document.getElementById('lockBtn').innerHTML = '<i class="fas fa-unlock"></i><span> Unlock</span>';
+            showToast('Application locked successfully');
+        }
+
+        function saveUnlockStatus() {
+            localStorage.setItem(STORAGE_KEYS.UNLOCKED, 'true');
+            localStorage.setItem(STORAGE_KEYS.UNLOCK_TIME, Date.now().toString());
+        }
+
+        // Applications persistence & samples
+        function loadApplications() {
+            const raw = localStorage.getItem(STORAGE_KEYS.APPS);
+            if (raw) {
+                try {
+                    applications = JSON.parse(raw) || [];
+                } catch (e) {
+                    applications = [];
+                }
+            }
+            if (!applications || applications.length === 0) {
+                loadSampleApplications();
+            }
+            renderApplications();
+            updateStats();
+        }
+
+        function saveApplications() {
+            localStorage.setItem(STORAGE_KEYS.APPS, JSON.stringify(applications));
+        }
+
+        function loadSampleApplications() {
+            applications = [
+                {
+                    id:1, name:"Calculator Pro", icon:"fas fa-calculator", categories:["Tools","Productivity"],
+                    description:"Advanced calculator with scientific functions and history",
+                    image:"https://images.unsplash.com/photo-1587145820266-a5951ee6f620?auto=format&fit=crop&w=800&q=80",
+                    rating:4, isLocked:false, isFeatured:true,
+                    htmlContent:`<!doctype html><html><head><meta charset="utf-8"><title>Calculator Pro</title><style>body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:40px;text-align:center} .card{background:rgba(255,255,255,0.08);padding:24px;border-radius:14px;max-width:500px;margin:0 auto}</style></head><body><div class="card"><h1>Calculator Pro</h1><p>Scientific functions, history & themes.</p></div></body></html>`,
+                    createdAt:new Date().toISOString(), downloads:42
+                },
+                {
+                    id:2, name:"Weather Dashboard", icon:"fas fa-cloud-sun", categories:["Weather","Tools"],
+                    description:"Real-time weather forecasts with beautiful visuals",
+                    image:"https://images.unsplash.com/photo-1592210454359-9043f067919b?auto=format&fit=crop&w=800&q=80",
+                    rating:5, isLocked:false, isFeatured:true,
+                    htmlContent:`<!doctype html><html><head><meta charset="utf-8"><title>Weather Dashboard</title><style>body{font-family:Arial, Helvetica, sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:40px;text-align:center}.card{background:rgba(255,255,255,0.06);padding:24px;border-radius:14px;max-width:500px;margin:0 auto}</style></head><body><div class="card"><h1>Weather Dashboard</h1><p>7-day forecast, alerts & maps.</p></div></body></html>`,
+                    createdAt:new Date().toISOString(), downloads:28
+                }
+            ];
+            saveApplications();
+        }
+
+        // Rendering
+        function renderApplications() {
+            renderAllApplications();
+            renderCurrentApplications();
+            updateStats();
+        }
+
+        function renderAllApplications() {
+            const container = document.getElementById('appGrid');
+            if (!applications || applications.length === 0) {
+                container.innerHTML = `<div class="empty-state glass"><div style="font-size:2rem;color:var(--glass-border)"><i class="fas fa-box-open"></i></div><p>No applications available</p><button class="btn btn-primary" onclick="openAdminPanel()"><i class="fas fa-plus"></i> Add First Application</button></div>`;
+                return;
+            }
+            container.innerHTML = applications.map(app => {
+                const lockedBadge = app.isLocked ? `<div class="badge badge-locked" style="position:absolute;top:0.75rem;right:0.75rem;"><i class="fas fa-lock"></i> Locked</div>` : '';
+                const featuredBadge = app.isFeatured ? `<div class="badge" style="position:absolute;top:0.75rem;left:0.75rem;background:rgba(245,158,11,0.08);color:var(--warning)"><i class="fas fa-star"></i> Featured</div>` : '';
+                const categoriesHtml = (Array.isArray(app.categories) ? app.categories : []).map(c=> `<span class="tag">${escapeHtml(c)}</span>`).join(' ');
+                const starsHtml = Array.from({length:5}).map((_,i)=> i < (app.rating||0) ? `<i class="fas fa-star" style="color:var(--warning)"></i>` : `<i class="fas fa-star" style="opacity:0.25"></i>`).join('');
+                return `
+                    <div class="app-card glass">
+                        ${lockedBadge}${featuredBadge}
+                        <img class="app-image" src="${escapeHtml(app.image || defaultImage())}" alt="${escapeHtml(app.name)}" onerror="this.src='${defaultImage()}';">
+                        <div class="app-content">
+                            <div class="app-header">
+                                <div class="app-icon"><i class="${escapeHtml(app.icon)}" style="color:white"></i></div>
+                                <div style="flex:1">
+                                    <h3 style="margin:0;font-size:1rem">${escapeHtml(app.name)}</h3>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">${categoriesHtml}</div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem">${starsHtml}<small style="color:var(--gray)">${app.downloads||0} downloads</small></div>
+                            <p style="color:var(--gray);margin:0.6rem 0 0;">${escapeHtml(app.description || '')}</p>
+                            <div class="app-actions" style="margin-top:0.8rem">
+                                <button class="btn btn-primary" ${app.isLocked ? 'disabled style="opacity:0.5"' : ''} onclick="runApplication(${app.id})"><i class="fas fa-play"></i> ${app.isLocked ? 'Locked' : 'Run'}</button>
+                                <button class="btn btn-secondary" onclick="downloadApplication(${app.id})"><i class="fas fa-download"></i> Download</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderCurrentApplications() {
+            const list = document.getElementById('currentAppsList');
+            if (!applications || applications.length === 0) {
+                list.innerHTML = `<div class="empty-state" style="padding:0.75rem"><small style="color:var(--gray)">No applications to manage</small></div>`;
+                return;
+            }
+            list.innerHTML = applications.map(app => {
+                return `
+                    <div class="app-item">
+                        <div style="display:flex;align-items:center;gap:0.6rem;flex:1">
+                            <div class="app-item-icon"><i class="${escapeHtml(app.icon)}" style="color:white"></i></div>
+                            <div>
+                                <h4 style="margin:0;font-size:0.9rem">${escapeHtml(app.name)}</h4>
+                                <small style="color:var(--gray)">${(Array.isArray(app.categories)?app.categories.join(', '):'')}</small>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:0.4rem">
+                            <button class="btn btn-sm" onclick="startEditApplication(${app.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteApplication(${app.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats(){
+            const total = applications.length;
+            const featured = applications.filter(a=>a.isFeatured).length;
+            const locked = applications.filter(a=>a.isLocked).length;
+            const cats = new Set();
+            applications.forEach(app=> (Array.isArray(app.categories)?app.categories:[]).forEach(c=>cats.add(c)));
+            document.getElementById('totalApps').textContent = total;
+            document.getElementById('featuredApps').textContent = featured;
+            document.getElementById('lockedApps').textContent = locked;
+            document.getElementById('categories').textContent = cats.size;
+        }
+
+        // Actions
+        function runApplication(id) {
+            const app = applications.find(a=>a.id===id);
+            if (!app) return;
+            if (app.isLocked) { showToast('This application is locked', true); return; }
+            const w = window.open('', '_blank');
+            w.document.write(app.htmlContent || '<!doctype html><html><body><p>Empty app</p></body></html>');
+            w.document.close();
+            showToast(`Running ${app.name}`);
+        }
+
+        function downloadApplication(id) {
+            const app = applications.find(a=>a.id===id);
+            if (!app) return;
+            const blob = new Blob([app.htmlContent || ''], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${(app.name||'app').replace(/\s+/g,'_').toLowerCase()}.html`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            app.downloads = (app.downloads||0) + 1;
+            saveApplications();
+            renderApplications();
+            showToast(`${app.name} downloaded`);
+        }
+
+        function deleteApplication(id) {
+            if (!confirm('Delete this application?')) return;
+            applications = applications.filter(a=>a.id!==id);
+            saveApplications();
+            renderApplications();
+            showToast('Application deleted');
+        }
+
+        function startEditApplication(id) {
+            const app = applications.find(a=>a.id===id);
+            if (!app) return;
+            // prefill form
+            editingId = id;
+            document.getElementById('appName').value = app.name || '';
+            document.getElementById('appIcon').value = app.icon || 'fas fa-box';
+            document.getElementById('appCategories').value = Array.isArray(app.categories) ? app.categories.join(', ') : app.categories || '';
+            document.getElementById('appDescription').value = app.description || '';
+            document.getElementById('appRating').value = app.rating || 3;
+            selectedRating = app.rating || 3;
+            document.getElementById('isLocked').checked = !!app.isLocked;
+            document.getElementById('isFeatured').checked = !!app.isFeatured;
+
+            // set previews for image (if available)
+            if (app.image) {
+                uploadedImage = null; // do not force a new file; keep using the URL as fallback
+                document.getElementById('imagePreview').innerHTML = `
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+                        <img src="${escapeHtml(app.image)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
+                        <div style="font-size:0.9rem;font-weight:700">${escapeHtml(app.name)}</div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('imagePreview').innerHTML = '';
+            }
+
+            // we can't populate the actual html file object; show the filename placeholder
+            uploadedHTML = null;
+            document.getElementById('htmlPreview').innerHTML = `<div style="margin-top:0.5rem;color:var(--gray);font-size:0.9rem">Existing HTML will remain unless you upload a new file</div>`;
+
+            updateRatingStars();
+
+            openAdminPanel();
+            // remove the original app from list temporarily so "Add" will replace on submit
+            applications = applications.filter(a=>a.id!==id);
+            renderCurrentApplications();
+            showToast('Editing application');
+        }
+
+        // Add or Update app (if editingId set update, else add)
+        function addOrUpdateApplication(){
+            const name = (document.getElementById('appName').value || '').trim();
+            if (!name) { showToast('Please enter a name', true); return; }
+
+            // If we're editing and no new HTML uploaded, use previous htmlContent stored in memory? We removed the original app on edit start, so store a placeholder:
+            // For simplicity, if user didn't upload a new HTML file during edit, we keep an empty HTML (safer to require upload during new addition).
+            if (!uploadedHTML && editingId === null) { showToast('Please upload an HTML file', true); return; }
+
+            // If uploadedHTML exists, read it; otherwise, if editingId set, try to reuse a previous htmlContent if any (not available) — so we require upload only for new apps.
+            if (uploadedHTML) {
+                const reader = new FileReader();
+                reader.onload = function(e){
+                    const htmlText = e.target.result;
+                    commitAppCreationOrUpdate(htmlText);
+                };
+                reader.readAsText(uploadedHTML);
+            } else {
+                // no uploaded file (editing case): try to reuse the original app's htmlContent if available in the temp variable
+                // For robustness, require HTML when adding new; for editing, if no new file uploaded, we'll attempt to set a simple placeholder
+                commitAppCreationOrUpdate('<!doctype html><html><body><p>App content not provided.</p></body></html>');
+            }
+        }
+
+        function commitAppCreationOrUpdate(htmlText) {
+            const name = (document.getElementById('appName').value || '').trim();
+            const icon = document.getElementById('appIcon').value || 'fas fa-box';
+            const categories = (document.getElementById('appCategories').value || '').split(',').map(s => s.trim()).filter(Boolean);
+            const desc = document.getElementById('appDescription').value || '';
+            const rating = selectedRating || 3;
+            const locked = !!document.getElementById('isLocked').checked;
+            const featured = !!document.getElementById('isFeatured').checked;
+            let imageUrl = defaultImage();
+
+            if (uploadedImage) {
+                imageUrl = URL.createObjectURL(uploadedImage);
+            } else {
+                // if editing and imagePreview shows a URL, leave it as-is by checking preview's <img>
+                const imgPreview = document.querySelector('#imagePreview img');
+                if (imgPreview && imgPreview.src) imageUrl = imgPreview.src;
+            }
+
+            const newApp = {
+                id: editingId ? editingId : (applications.length>0 ? Math.max(...applications.map(a=>a.id))+1 : 1),
+                name, icon, categories, description: desc,
+                image: imageUrl, rating, isLocked: locked, isFeatured: featured,
+                htmlContent: htmlText, createdAt: new Date().toISOString(), downloads: 0
+            };
+
+            // if editingId existed, ensure no duplication
+            applications.push(newApp);
+            // cleanup
+            editingId = null;
+            saveApplications();
+            renderApplications();
+            clearForm();
+            closeModal();
+            showToast('Application saved');
+        }
+
+        function clearForm(){
+            document.getElementById('appForm').reset();
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('htmlPreview').innerHTML = '';
+            uploadedImage = null;
+            uploadedHTML = null;
+            selectedRating = 3;
+            editingId = null;
+            updateRatingStars();
+        }
+
+        // File upload utils
+        function setupFileUploads(){
+            setupFileUpload('imageUpload','imageInput','imagePreview',true);
+            setupFileUpload('htmlUpload','htmlInput','htmlPreview',false);
+        }
+
+        function setupFileUpload(dropAreaId, inputId, previewId, isImage){
+            const dropArea = document.getElementById(dropAreaId);
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+
+            // click to open
+            dropArea.addEventListener('click', ()=> input.click());
+
+            // prevent defaults & visual feedback
+            ['dragenter','dragover','dragleave','drop'].forEach(evt => {
+                dropArea.addEventListener(evt, preventDefaults, false);
+            });
+
+            ['dragenter','dragover'].forEach(evt => {
+                dropArea.addEventListener(evt, ()=> dropArea.classList.add('dragover'), false);
+            });
+            ['dragleave','drop'].forEach(evt => {
+                dropArea.addEventListener(evt, ()=> dropArea.classList.remove('dragover'), false);
+            });
+
+            dropArea.addEventListener('drop', handleDrop, false);
+            input.addEventListener('change', handleChange, false);
+
+            function handleDrop(e){
+                const dt = e.dataTransfer;
+                const files = dt && dt.files ? dt.files : [];
+                if (files && files.length > 0) handleFile(files[0]);
+            }
+
+            function handleChange(e){
+                const files = e.target.files || [];
+                if (files && files.length > 0) handleFile(files[0]);
+            }
+
+            function handleFile(file){
+                if (!file) return;
+                if (isImage) {
+                    if (!file.type.startsWith('image/')) { showToast('Please select an image file', true); return; }
+                    uploadedImage = file;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        preview.innerHTML = `
+                            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+                                <img src="${ev.target.result}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
+                                <div style="flex:1">
+                                    <div style="font-weight:700">${escapeHtml(file.name)}</div>
+                                    <div style="color:var(--gray);font-size:0.85rem">${formatFileSize(file.size)}</div>
+                                </div>
+                                <button class="btn btn-sm" onclick="removeUploaded('image')" type="button"><i class="fas fa-times"></i></button>
+                            </div>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // html file
+                    if (!file.name.toLowerCase().endsWith('.html')) { showToast('Please select an HTML file', true); return; }
+                    uploadedHTML = file;
+                    preview.innerHTML = `
+                        <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+                            <div style="width:48px;height:48px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white"><i class="fas fa-file-code"></i></div>
+                            <div style="flex:1">
+                                <div style="font-weight:700">${escapeHtml(file.name)}</div>
+                                <div style="color:var(--gray);font-size:0.85rem">${formatFileSize(file.size)}</div>
+                            </div>
+                            <button class="btn btn-sm" onclick="removeUploaded('html')" type="button"><i class="fas fa-times"></i></button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function removeUploaded(type){
+            if (type === 'image') {
+                uploadedImage = null;
+                document.getElementById('imageInput').value = '';
+                document.getElementById('imagePreview').innerHTML = '';
+            } else {
+                uploadedHTML = null;
+                document.getElementById('htmlInput').value = '';
+                document.getElementById('htmlPreview').innerHTML = '';
+            }
+        }
+
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+        function formatFileSize(bytes){
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024; const sizes = ['Bytes','KB','MB','GB'];
+            const i = Math.floor(Math.log(bytes)/Math.log(k));
+            return (bytes/Math.pow(k,i)).toFixed(1)+' '+sizes[i];
+        }
+
+        // Rating
+        function setRating(r) { selectedRating = r; document.getElementById('appRating').value = r; updateRatingStars(); }
+        function updateRatingStars(){
+            document.querySelectorAll('#ratingStars .star').forEach(star=>{
+                const v = parseInt(star.getAttribute('data-value'),10);
+                star.className = (v <= selectedRating) ? 'fas fa-star star' : 'fas fa-star star-empty';
+                star.style.color = (v <= selectedRating) ? '' : 'rgba(255,255,255,0.35)';
+            });
+        }
+
+        // Modal
+        function openAdminPanel(){
+            if (isLocked) { showToast('Please unlock first', true); return; }
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('adminModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal(){
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('adminModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            clearForm();
+        }
+
+        // Search
+        function handleSearch(e){
+            const term = (e.target.value || '').trim().toLowerCase();
+            const appGrid = document.getElementById('appGrid');
+            if (!term) { renderAllApplications(); return; }
+            const filtered = applications.filter(app => {
+                return (app.name||'').toLowerCase().includes(term)
+                    || (app.description||'').toLowerCase().includes(term)
+                    || (Array.isArray(app.categories) && app.categories.join(' ').toLowerCase().includes(term));
+            });
+            if (!filtered || filtered.length === 0) {
+                appGrid.innerHTML = `<div class="empty-state"><div style="font-size:2rem;color:var(--glass-border)"><i class="fas fa-search"></i></div><p>No applications found for "${escapeHtml(term)}"</p></div>`;
+                return;
+            }
+            appGrid.innerHTML = filtered.map(app => {
+                const lockedBadge = app.isLocked ? `<div class="badge badge-locked" style="position:absolute;top:0.75rem;right:0.75rem;"><i class="fas fa-lock"></i> Locked</div>` : '';
+                return `
+                    <div class="app-card glass">
+                        ${lockedBadge}
+                        <img class="app-image" src="${escapeHtml(app.image||defaultImage())}" alt="${escapeHtml(app.name)}" onerror="this.src='${defaultImage()}';">
+                        <div class="app-content">
+                            <div class="app-header"><div class="app-icon"><i class="${escapeHtml(app.icon)}" style="color:white"></i></div><div style="flex:1"><h3 style="margin:0">${escapeHtml(app.name)}</h3></div></div>
+                            <p style="color:var(--gray)">${escapeHtml(app.description||'')}</p>
+                            <div class="app-actions" style="margin-top:0.6rem">
+                                <button class="btn btn-primary" ${app.isLocked ? 'disabled style="opacity:0.5"' : ''} onclick="runApplication(${app.id})"><i class="fas fa-play"></i> ${app.isLocked ? 'Locked' : 'Run'}</button>
+                                <button class="btn btn-secondary" onclick="downloadApplication(${app.id})"><i class="fas fa-download"></i> Download</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Utility & helpers
+        function showToast(message, isError=false){
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toastMessage');
+            msg.textContent = message;
+            toast.className = `toast ${isError ? 'toast-error' : 'toast-success'} show`;
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(()=> { toast.classList.remove('show'); }, 3000);
+        }
+
+        function escapeHtml(s){ if (!s && s!==0) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function defaultImage(){ return 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?auto=format&fit=crop&w=800&q=80'; }
+
+        // small helper: start editing an app (invoked from UI)
+        function editApplication(id){ startEditApplication(id); }
+
+        // expose deleteApplication to global (used inline)
+        window.deleteApplication = deleteApplication;
+        window.editApplication = editApplication;
+        window.runApplication = runApplication;
+        window.downloadApplication = downloadApplication;
+        window.openAdminPanel = openAdminPanel;
+        window.removeUploaded = removeUploaded;
+
+        // small CSS for shake included early
+        // done
+    </script>
+</body>
+</html>
